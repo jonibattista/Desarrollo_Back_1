@@ -1,0 +1,15 @@
+[
+  {
+    "title": "Remera de algodón",
+    "description": "Remera unisex color blanco",
+    "code": "REM001",
+    "price": 3500,
+    "stock": 20,
+    "category": "Ropa",
+    "status": true,
+    "thumbnails": [
+      "img/remera1.jpg"
+    ],
+    "id": 1
+  }
+]
