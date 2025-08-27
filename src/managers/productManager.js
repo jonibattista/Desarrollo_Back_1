@@ -1,18 +1,18 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default class ProductManager {
   constructor() {
-    this.path = path.join(__dirname, '..', 'products.json');
+    this.path = path.join(__dirname, "..", "data", "products.json");
   }
 
   async getProducts() {
     try {
-      const data = await fs.readFile(this.path, 'utf-8');
+      const data = await fs.readFile(this.path, "utf-8");
       return JSON.parse(data);
     } catch {
       return [];
@@ -21,7 +21,7 @@ export default class ProductManager {
 
   async getProductById(id) {
     const products = await this.getProducts();
-    return products.find(p => p.id == id);
+    return products.find((p) => p.id == id);
   }
 
   async saveProducts(products) {
@@ -30,7 +30,6 @@ export default class ProductManager {
 
   async addProduct(product) {
     const products = await this.getProducts();
-
     const maxId = products.reduce((max, p) => (p.id > max ? p.id : max), 0);
     product.id = maxId + 1;
 
@@ -41,7 +40,7 @@ export default class ProductManager {
 
   async updateProduct(id, updatedFields) {
     const products = await this.getProducts();
-    const index = products.findIndex(p => p.id == id);
+    const index = products.findIndex((p) => p.id == id);
     if (index === -1) return null;
 
     const idOriginal = products[index].id;
@@ -53,7 +52,7 @@ export default class ProductManager {
 
   async deleteProduct(id) {
     const products = await this.getProducts();
-    const filtered = products.filter(p => p.id != id);
+    const filtered = products.filter((p) => p.id != id);
     if (filtered.length === products.length) return false;
     await this.saveProducts(filtered);
     return true;
