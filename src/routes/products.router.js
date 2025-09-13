@@ -1,34 +1,68 @@
 import { Router } from "express";
-import ProductManager from "../managers/ProductManager.js";
+import Product from "../models/product.js";
 
 const router = Router();
-const productManager = new ProductManager();
 
-router.get("/", async (req, res) => {
-  const products = await productManager.getProducts();
-  res.json(products);
-});
+export default (io) => {
+  router.get("/", async (req, res) => {
+    try {
+      let { limit = 10, page = 1, sort, query } = req.query;
+      limit = parseInt(limit);
+      page = parseInt(page);
 
-router.post("/", async (req, res) => {
-  const product = await productManager.addProduct(req.body);
+      const filter = query ? { category: query } : {};
+      const options = { page, limit, lean: true };
+      if (sort === "asc") options.sort = { price: 1 };
+      else if (sort === "desc") options.sort = { price: -1 };
 
-  const io = req.app.get("io");
-  const products = await productManager.getProducts();
-  io.emit("productList", products);
+      const result = await Product.paginate(filter, options);
 
-  res.json(product);
-});
+      // Si es request desde navegador, renderizamos la vista
+      if (!req.xhr && !req.headers.accept.includes("application/json")) {
+        return res.render("home", {
+          products: result.docs,
+          page: result.page,
+          totalPages: result.totalPages,
+          hasPrevPage: result.hasPrevPage,
+          hasNextPage: result.hasNextPage,
+          prevPage: result.prevPage,
+          nextPage: result.nextPage,
+          limit,
+          title: "Lista de Productos"
+        });
+      }
 
-router.delete("/:id", async (req, res) => {
-  const deleted = await productManager.deleteProduct(req.params.id);
+      // Si es request AJAX / API, devolvemos JSON
+      res.json({
+        status: "success",
+        payload: result.docs,
+        totalPages: result.totalPages,
+        prevPage: result.prevPage,
+        nextPage: result.nextPage,
+        page: result.page,
+        hasPrevPage: result.hasPrevPage,
+        hasNextPage: result.hasNextPage,
+        prevLink: result.hasPrevPage ? `/api/products?page=${result.prevPage}&limit=${limit}` : null,
+        nextLink: result.hasNextPage ? `/api/products?page=${result.nextPage}&limit=${limit}` : null
+      });
 
-  if (!deleted) return res.status(404).json({ error: "Producto no encontrado" });
+    } catch (error) {
+      res.status(500).json({ status: "error", message: error.message });
+    }
+  });
 
-  const io = req.app.get("io");
-  const products = await productManager.getProducts();
-  io.emit("productList", products);
+  // Resto de rutas POST, PUT, DELETE igual
+  router.post("/", async (req, res) => {
+    try {
+      const product = await Product.create(req.body);
+      const products = await Product.find();
+      io.emit("productList", products);
+      res.status(201).json(product);
+    } catch (error) {
+      res.status(500).json({ status: "error", message: error.message });
+    }
+  });
 
-  res.json({ success: true });
-});
+  return router;
+};
 
-export default router;
